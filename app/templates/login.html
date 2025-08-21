@@ -1,17 +1,74 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <title>Dashboard Login</title>
+  <meta charset="UTF-8">
+  <title>Access Dashboard</title>
   <style>
-    body { font-family: Arial; display: flex; height: 100vh; justify-content: center; align-items: center; }
-    .box { padding: 20px; border: 1px solid #ccc; border-radius: 6px; text-align: center; }
-    input[type="password"] { width: 100%; padding:10px; margin-bottom:10px; }
-    button { width:100%; padding:10px; background: #28a745; color:white; border:none; border-radius: 4px; }
-    .error { color:red; margin-top:10px; }
+    body {
+      margin: 0;
+      padding: 0;
+      background: black;
+      overflow: hidden;
+      font-family: monospace;
+      color: #0f0; /* 기본 텍스트 초록 */
+    }
+
+    /* 캔버스: 매트릭스 이펙트 */
+    canvas {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 0;
+    }
+
+    /* 로그인 박스 */
+    .login-box {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: rgba(0,0,0,0.8);
+      padding: 20px;
+      border: 1px solid #0f0;
+      border-radius: 6px;
+      z-index: 1; /* 캔버스보다 위 */
+      text-align: center;
+    }
+
+    input[type="password"] {
+      width: 250px;
+      padding: 10px;
+      margin-bottom: 10px;
+      border: 1px solid #0f0;
+      background: black;
+      color: #0f0;
+      font-size: 14px;
+      text-align: center;
+    }
+
+    button {
+      width: 100%;
+      padding: 10px;
+      background: #0f0;
+      color: black;
+      font-weight: bold;
+      border: none;
+      cursor: pointer;
+      font-size: 14px;
+    }
+
+    .error {
+      color: red;
+      margin-top: 10px;
+    }
   </style>
 </head>
 <body>
-  <div class="box">
+  <canvas id="matrix"></canvas>
+
+  <div class="login-box">
     <form method="post">
       <input type="password" name="password" placeholder="Enter password" required />
       <button type="submit">Access Dashboard</button>
@@ -20,5 +77,43 @@
       {% endif %}
     </form>
   </div>
+
+  <script>
+    // 매트릭스 이펙트 구현
+    const canvas = document.getElementById('matrix');
+    const ctx = canvas.getContext('2d');
+
+    canvas.height = window.innerHeight;
+    canvas.width = window.innerWidth;
+
+    const letters = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+    const fontSize = 14;
+    const columns = canvas.width / fontSize;
+
+    const drops = [];
+    for(let x = 0; x < columns; x++) {
+      drops[x] = 1;
+    }
+
+    function draw() {
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.05)'; // 투명 배경으로 잔상 만들기
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      ctx.fillStyle = '#0F0';
+      ctx.font = fontSize + "px monospace";
+
+      for(let i = 0; i < drops.length; i++) {
+        const text = letters.charAt(Math.floor(Math.random() * letters.length));
+        ctx.fillText(text, i * fontSize, drops[i] * fontSize);
+
+        if(drops[i] * fontSize > canvas.height && Math.random() > 0.975) {
+          drops[i] = 0;
+        }
+        drops[i]++;
+      }
+    }
+
+    setInterval(draw, 33);
+  </script>
 </body>
 </html>
