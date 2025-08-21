@@ -10,10 +10,9 @@
       background: black;
       overflow: hidden;
       font-family: monospace;
-      color: #0f0; /* 기본 텍스트 초록 */
+      color: #0f0;
     }
 
-    /* 캔버스: 매트릭스 이펙트 */
     canvas {
       position: fixed;
       top: 0;
@@ -23,17 +22,16 @@
       z-index: 0;
     }
 
-    /* 로그인 박스 */
     .login-box {
       position: absolute;
       top: 50%;
       left: 50%;
       transform: translate(-50%, -50%);
-      background: rgba(0,0,0,0.8);
+      background: rgba(0,0,0,0.75);
       padding: 20px;
       border: 1px solid #0f0;
       border-radius: 6px;
-      z-index: 1; /* 캔버스보다 위 */
+      z-index: 1;
       text-align: center;
     }
 
@@ -79,40 +77,45 @@
   </div>
 
   <script>
-    // 매트릭스 이펙트 구현
     const canvas = document.getElementById('matrix');
     const ctx = canvas.getContext('2d');
-    
+
     canvas.height = window.innerHeight;
     canvas.width = window.innerWidth;
-    
-    const letters = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+
+    const letters = '01';  // 매트릭스 감성 → 숫자 0,1만 흘리도록
     const fontSize = 14;
     const columns = canvas.width / fontSize;
-    
+
     const drops = [];
     for (let x = 0; x < columns; x++) {
       drops[x] = Math.floor(Math.random() * canvas.height / fontSize);
     }
-    
+
     function draw() {
       ctx.fillStyle = 'rgba(0, 0, 0, 0.05)';
       ctx.fillRect(0, 0, canvas.width, canvas.height);
-    
+
       ctx.fillStyle = '#0F0';
       ctx.font = fontSize + "px monospace";
-    
+
       for (let i = 0; i < drops.length; i++) {
         const text = letters.charAt(Math.floor(Math.random() * letters.length));
         ctx.fillText(text, i * fontSize, drops[i] * fontSize);
-    
+
         if (drops[i] * fontSize > canvas.height && Math.random() > 0.975) {
           drops[i] = 0;
         }
         drops[i]++;
       }
     }
-    
+
+    // 🚀 페이지 열리자마자 200프레임 미리 그려서 '이미 흐르고 있었던' 잔상 완성
+    for (let i = 0; i < 200; i++) {
+      draw();
+    }
+
+    // 이후에는 33ms(=초당 약 30프레임) 간격으로 계속 흘리기
     setInterval(draw, 33);
   </script>
 </body>
