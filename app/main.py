@@ -1,8 +1,10 @@
 from fastapi import FastAPI, Request, Form, HTTPException
-from fastapi.responses import JSONResponse, HTMLResponse
+from fastapi.responses import JSONResponse, HTMLResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from fastapi.middleware.cors import CORSMiddleware
+from starlette.middleware.sessions import SessionMiddleware
+
 from app.models.schemas import ErrorResponse
 from app.services import GeminiClient
 from app.utils import (
@@ -32,6 +34,7 @@ BASE_DIR = pathlib.Path(__file__).parent
 templates = Jinja2Templates(directory=str(BASE_DIR / "templates"))
 
 app = FastAPI(limit="50M")
+app.add_middleware(SessionMiddleware, secret_key=os.environ.get("SESSION_SECRET", "supersecret"))
 
 # --------------- CORS 中间件 ---------------
 # 如果 ALLOWED_ORIGINS 为空列表，则不允许任何跨域请求
@@ -278,28 +281,27 @@ app.include_router(dashboard_router)
 # 挂载静态文件目录
 app.mount("/assets", StaticFiles(directory="app/templates/assets"), name="assets")
 
-SECRET_KEY = os.environ.get("MY_SECRET", "changeme")  # 환경변수 MY_SECRET 사용
+SECRET_KEY = os.environ.get("MY_SECRET", "changeme")
 
-dashboard_path = f"/{settings.DASHBOARD_URL}" if settings.DASHBOARD_URL else "/"
-
-# 처음 접속 → 로그인 페이지 (암호 입력창)
-@app.get(dashboard_path, response_class=HTMLResponse)
+@app.get("/", response_class=HTMLResponse)
 async def login_page(request: Request):
-    return templates.TemplateResponse("login.html", {"request": request})
-
-# 암호 입력 후 제출 → 맞으면 index.html, 틀리면 다시 로그인 화면
-@app.post(dashboard_path, response_class=HTMLResponse)
-async def login_submit(request: Request, password: str = Form(...)):
-    if password == SECRET_KEY:
+    # ✅ 이미 로그인 되어 있으면 곧장 대시보드 보여주기
+    if request.session.get("logged_in"):
         base_url = str(request.base_url).replace("http", "https")
         api_url = f"{base_url}v1" if base_url.endswith("/") else f"{base_url}/v1"
-        return templates.TemplateResponse(
-            "index.html", {"request": request, "api_url": api_url}
-        )
+        return templates.TemplateResponse("index.html", {"request": request, "api_url": api_url})
+    return templates.TemplateResponse("login.html", {"request": request})
+
+@app.post("/", response_class=HTMLResponse)
+async def login_submit(request: Request, password: str = Form(...)):
+    if password == SECRET_KEY:
+        # ✅ 세션에 로그인 정보 저장
+        request.session["logged_in"] = True
+        base_url = str(request.base_url).replace("http", "https")
+        api_url = f"{base_url}v1" if base_url.endswith("/") else f"{base_url}/v1"
+        return templates.TemplateResponse("index.html", {"request": request, "api_url": api_url})
     else:
-        return templates.TemplateResponse(
-            "login.html", {"request": request, "error": "❌ 비밀번호가 틀렸습니다"}
-        )
+        return templates.TemplateResponse("login.html", {"request": request, "error": "❌ Wrong password"})
 
 
 # --------------- 自动启动浏览器 ---------------
