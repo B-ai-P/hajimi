@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, Form, HTTPException
 from fastapi.responses import JSONResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -278,21 +278,28 @@ app.include_router(dashboard_router)
 # 挂载静态文件目录
 app.mount("/assets", StaticFiles(directory="app/templates/assets"), name="assets")
 
-# 设置根路由路径
+SECRET_KEY = os.environ.get("MY_SECRET", "changeme")  # 환경변수 MY_SECRET 사용
+
 dashboard_path = f"/{settings.DASHBOARD_URL}" if settings.DASHBOARD_URL else "/"
 
+# 처음 접속 → 로그인 페이지 (암호 입력창)
+@app.get(dashboard_path, response_class=HTMLResponse)
+async def login_page(request: Request):
+    return templates.TemplateResponse("login.html", {"request": request})
 
-@app.api_route(dashboard_path, methods=["GET", "HEAD"], response_class=HTMLResponse)
-async def root(request: Request):
-    """
-    根路由 - 返回静态 HTML 文件
-    """
-    base_url = str(request.base_url).replace("http", "https")
-    api_url = f"{base_url}v1" if base_url.endswith("/") else f"{base_url}/v1"
-    # 直接返回 index.html 文件
-    return templates.TemplateResponse(
-        "index.html", {"request": request, "api_url": api_url}
-    )
+# 암호 입력 후 제출 → 맞으면 index.html, 틀리면 다시 로그인 화면
+@app.post(dashboard_path, response_class=HTMLResponse)
+async def login_submit(request: Request, password: str = Form(...)):
+    if password == SECRET_KEY:
+        base_url = str(request.base_url).replace("http", "https")
+        api_url = f"{base_url}v1" if base_url.endswith("/") else f"{base_url}/v1"
+        return templates.TemplateResponse(
+            "index.html", {"request": request, "api_url": api_url}
+        )
+    else:
+        return templates.TemplateResponse(
+            "login.html", {"request": request, "error": "❌ 비밀번호가 틀렸습니다"}
+        )
 
 
 # --------------- 自动启动浏览器 ---------------
