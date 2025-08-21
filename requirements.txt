@@ -12,3 +12,4 @@ google-genai==1.11.0
 xxhash
 openai==1.76.0
 python-multipart
+itsdangerous
